@@ -1,43 +1,15 @@
 #include "stdio.h"
 #include "main.h"
 #include "stdlib.h"
+#include "time.h"
 
 int main() {
-    const char *images_filename = "dataset\\train-images.idx3-ubyte";
-    const char *labels_filename = "dataset\\train-labels.idx1-ubyte";
+    neural_net* net = initialize_network(784, 10);
 
-    mnist_data *train_images = load_mnist_images(images_filename);
-    mnist_data *train_labels = load_mnist_labels(labels_filename);
-    if (train_images && train_labels) {
-        printf("Images and labels loaded successfully.\n");
-        printf("Number of images: %d\n", train_images->size);
-        printf("Number of labels: %d\n", train_labels->size);
-        printf("First image label: %d\n", train_labels->labels[0]);
-        for (int i = 0; i < 28; i++) {
-            for (int j = 0; j < 28; j++) {
-                if (train_images->images[0][i * 28 + j] == 0.00)
-                    printf("%c ", "O"); // %c used to make digits more visible try
-                else
-                    printf("%c ", "X");
-            }
-            printf("\n");
-        }
-    } else {
-        printf("Failed to load images and labels. \n");
-    }
-
-    if (train_images) {
-        for (int i = 0; i < train_images->size; ++i) {
-            free(train_images->images[i]);
-        }
-        free(train_images->images);
-        free(train_images);
-    }
-
-    if (train_labels) {
-        free(train_labels->labels);
-        free(train_labels);
-    }
+    printf("Amount of neurons in the input layer: %d\n", net->input_nodes);
+    printf("Amount of neurons in the output layer: %d\n", net->output_nodes);
+    printf("Are weights initialized: %d\n", net->weights != NULL);
+    printf("Are biases initialized: %d\n", net->biases != NULL);
 
     return 0;
 }
@@ -123,4 +95,35 @@ mnist_data* load_mnist_labels(const char* labels_filename) {
 
     fclose(file);
     return data;
+}
+
+neural_net* initialize_network(int input_nodes, int output_nodes) {
+    neural_net *net = (neural_net *)malloc(sizeof(neural_net));
+    if (net == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return NULL;
+    }
+
+    net->input_nodes = input_nodes;
+    net->output_nodes = output_nodes;
+    net->weights = (float *)malloc(input_nodes * output_nodes * sizeof(float));
+    net->biases = (float *)malloc(output_nodes * sizeof(float));
+    if (net->weights == NULL || net->biases == NULL) {
+        fprintf(stderr, "Memort allocation for weights and biases failed\n");
+        free(net->weights);
+        free(net->biases);
+        free(net);
+        return NULL;
+    }
+
+    srand(time(NULL));
+    for (int i = 0; i < input_nodes * output_nodes; i++) {
+        net->weights[i] = ((float)rand() / (float)(RAND_MAX)) * 0.01;
+    }
+
+    for (int i = 0; i < output_nodes; i++) {
+        net->biases[i] = 0.0f;
+    }
+
+    return net;
 }
