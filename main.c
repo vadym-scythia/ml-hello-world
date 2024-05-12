@@ -2,15 +2,24 @@
 #include "main.h"
 #include "stdlib.h"
 #include "time.h"
+#include "math.h"
 
 int main() {
-    neural_net* net = initialize_network(784, 10);
+    neural_net *net = initialize_network(3, 2);
 
-    printf("Amount of neurons in the input layer: %d\n", net->input_nodes);
-    printf("Amount of neurons in the output layer: %d\n", net->output_nodes);
-    printf("Are weights initialized: %d\n", net->weights != NULL);
-    printf("Are biases initialized: %d\n", net->biases != NULL);
+    float input[3] = {0.5, 0.3, 0.2};
+    float output[2];
 
+    forward_propagate_with_activation(net, input, output);
+
+    printf("Output after softmax:\n");
+    for (int i = 0; i < 2; i++) {
+        printf("Output node %d: %f\n", i, output[i]);
+    }
+    printf("Sum should be equal to 1: %f + %f = %f", output[0], output[1], output[0] + output[1]);
+
+    free_network(net);
+    
     return 0;
 }
 
@@ -126,4 +135,48 @@ neural_net* initialize_network(int input_nodes, int output_nodes) {
     }
 
     return net;
+}
+
+void forward_propagation(neural_net *net, float *input, float *output) {
+    for (int i = 0; i < net->output_nodes; i++) {
+        output[i] = net->biases[i];
+    }
+
+    for (int out = 0; out < net->output_nodes; out++) {
+        for (int in = 0; in < net->input_nodes; in++) {
+            output[out] += input[in] * net->weights[out * net->input_nodes + in];
+        }
+    }
+}
+
+void softmax(float *output, int size) {
+    float max = output[0];
+    for (int i = 1; i < size; i++) {
+        if (output[i] > max) {
+            max = output[i];
+        }
+    }
+
+    float sum = 0.0;
+    for (int i = 0; i < size; i++) {
+        output[i] = exp(output[i] - max);
+        sum += output[i];
+    }
+
+    for (int i = 0; i < size; i++) {
+        output[i] /= sum;
+    }
+}
+
+void forward_propagate_with_activation(neural_net *net, float *input, float *output) {
+    forward_propagation(net, input, output);
+    softmax(output, net->output_nodes);
+}
+
+void free_network(neural_net *net) {
+    if (net != NULL) {
+        free(net->weights);
+        free(net->biases);
+        free(net);
+    }
 }

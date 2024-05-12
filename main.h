@@ -33,8 +33,10 @@ typedef struct {
 neural_net* initialize_network(int input_nodes, int output_nodes);
 
 // Propagation section.
-float* forward_propagation(neural_net *net, float *input);
+void forward_propagation(neural_net *net, float *input, float *output);
 void softmax(float *input, int size);
+void forward_propagate_with_activation(neural_net *net, float *input, float *output);
+
 void backpropagation(neural_net *net, float *input, int *target, float learning_rate);
 void train(neural_net *net, mnist_data *train_data, int epochs, float learning_rate);
 float cross_entropy_loss(float *output, int *target, int size);
@@ -47,4 +49,5 @@ float evaluate(neural_net *net, mnist_data *test_data);
 void matrix_multiply(float *A, float *B, float *C, int A_rows, int A_cols, int B_cols);
 void matrix_add(float *A, float *B, int size);
 
-//TODO: free functions
+//Free functions
+void free_network(neural_net *net);
