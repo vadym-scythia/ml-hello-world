@@ -37,8 +37,8 @@ void forward_propagation(neural_net *net, float *input, float *output);
 void softmax(float *input, int size);
 void forward_propagate_with_activation(neural_net *net, float *input, float *output);
 
-void backpropagation(neural_net *net, float *input, int *target, float learning_rate);
-void train(neural_net *net, mnist_data *train_data, int epochs, float learning_rate);
+void backpropagation(neural_net *net, float *input, int *target, float *output, float learning_rate);
+void train(neural_net *net, mnist_data *train_data, mnist_data *train_labels, int epochs, float learning_rate);
 float cross_entropy_loss(float *output, int *target, int size);
 
 // Action section.

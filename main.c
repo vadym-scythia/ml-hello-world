@@ -5,21 +5,33 @@
 #include "math.h"
 
 int main() {
-    neural_net *net = initialize_network(3, 2);
+    const char *image_filename = "dataset/train-images.idx3-ubyte";
+    const char *label_filename = "dataset/train-labels.idx1-ubyte";
 
-    float input[3] = {0.5, 0.3, 0.2};
-    float output[2];
-
-    forward_propagate_with_activation(net, input, output);
-
-    printf("Output after softmax:\n");
-    for (int i = 0; i < 2; i++) {
-        printf("Output node %d: %f\n", i, output[i]);
-    }
-    printf("Sum should be equal to 1: %f + %f = %f", output[0], output[1], output[0] + output[1]);
-
-    free_network(net);
+    mnist_data *train_images = load_mnist_images(image_filename);
+    mnist_data *train_labels = load_mnist_labels(label_filename);
     
+    if (train_images && train_labels) {
+        printf("Images and labels loaded successfully.\n");
+        printf("Number of images: %d\n", train_images->size);
+        printf("Number of labels: %d\n", train_labels->size);
+
+        neural_net *net = initialize_network(784, 10);
+
+        train(net, train_images, train_labels, 100, 0.1); // For testing, use 10 epoch and a learning rate of 0.1
+
+        free_network(net);
+        for (int i = 0; i < train_images->size; i++) {
+            free(train_images->images[i]);
+        }
+        free(train_images->images);
+        free(train_images);
+        free(train_labels->labels);
+        free(train_labels);
+    } else {
+        printf("Failed to load images and labels.\n");
+    }
+
     return 0;
 }
 
@@ -171,6 +183,55 @@ void softmax(float *output, int size) {
 void forward_propagate_with_activation(neural_net *net, float *input, float *output) {
     forward_propagation(net, input, output);
     softmax(output, net->output_nodes);
+}
+
+float cross_entropy_loss(float *output, int *target, int size) {
+    float loss = 0.0f;
+    for (int i = 0; i < size; i++) {
+        if (target[i] == 1) {
+            loss -= log(output[i]);
+        }
+    }
+
+    return loss;
+}
+
+void backpropagation(neural_net *net, float *input, int *target, float *output, float learning_rate) {
+    float *delta = (float *)malloc(net->output_nodes * sizeof(float));
+
+    for (int i = 0; i < net->output_nodes; i++) {
+        delta[i] = output[i] - target[i];
+    }
+
+    for (int i = 0; i < net->output_nodes; i++) {
+        for (int j = 0; j < net->input_nodes; j++) {
+            net->weights[i * net->input_nodes + j] -= learning_rate * delta[i] * input[j];
+        }
+        net->biases[i] -= learning_rate * delta[i];
+    }
+
+    free(delta);
+}
+
+void train(neural_net *net, mnist_data *train_data, mnist_data *train_labels, int epochs, float learning_rate) {
+    for (int epoch = 0; epoch < epochs; epoch++) {
+        float total_loss = 0.0;
+        for (int i = 0; i < train_data->size; i++) {
+            float *ouput = (float *)malloc(net->output_nodes * sizeof(float));
+            
+            forward_propagate_with_activation(net, train_data->images[i], ouput);
+            
+            int target[10] = {0};
+            target[train_labels->labels[i]] = 1;
+
+            total_loss += cross_entropy_loss(ouput, target, net->output_nodes);
+
+            backpropagation(net, train_data->images[i], target, ouput, learning_rate);
+
+            free(ouput);
+        }
+        printf("Epoch %d, Loss: %f\n", epoch + 1, total_loss / train_data->size);
+    }
 }
 
 void free_network(neural_net *net) {
