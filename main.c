@@ -5,29 +5,49 @@
 #include "math.h"
 
 int main() {
-    const char *image_filename = "dataset/train-images.idx3-ubyte";
-    const char *label_filename = "dataset/train-labels.idx1-ubyte";
+    const char *train_image_filename = "dataset/train-images.idx3-ubyte";
+    const char *train_label_filename = "dataset/train-labels.idx1-ubyte";
+    const char *test_image_filename = "dataset/t10k-images.idx3-ubyte";
+    const char *test_label_filename = "dataset/t10k-labels.idx1-ubyte";
 
-    mnist_data *train_images = load_mnist_images(image_filename);
-    mnist_data *train_labels = load_mnist_labels(label_filename);
-    
-    if (train_images && train_labels) {
+    mnist_data *train_images = load_mnist_images(train_image_filename);
+    mnist_data *train_labels = load_mnist_labels(train_label_filename);
+    mnist_data *test_images = load_mnist_images(test_image_filename);
+    mnist_data *test_labels = load_mnist_labels(test_label_filename);
+
+    if (train_images && train_labels && test_images && test_labels) {
         printf("Images and labels loaded successfully.\n");
-        printf("Number of images: %d\n", train_images->size);
-        printf("Number of labels: %d\n", train_labels->size);
+        printf("Number of training images: %d\n", train_images->size);
+        printf("Number of training labels: %d\n", train_labels->size);
+        printf("Number of testing images: %d\n", test_images->size);
+        printf("Number of testing labels: %d\n", test_labels->size);
 
         neural_net *net = initialize_network(784, 10);
 
-        train(net, train_images, train_labels, 100, 0.1); // For testing, use 10 epoch and a learning rate of 0.1
+        train(net, train_images, train_labels, 30, 0.1); // For testing, use 1 epoch and a learning rate of 0.1
+
+        float accuracy = evaluate(net, test_images, test_labels);
+        printf("Accuracy on test set: %.2f%%\n", accuracy * 100);
 
         free_network(net);
+
         for (int i = 0; i < train_images->size; i++) {
             free(train_images->images[i]);
         }
         free(train_images->images);
         free(train_images);
+
         free(train_labels->labels);
         free(train_labels);
+
+        for (int i = 0; i < test_images->size; i++) {
+            free(test_images->images[i]);
+        }
+        free(test_images->images);
+        free(test_images);
+
+        free(test_labels->labels);
+        free(test_labels);
     } else {
         printf("Failed to load images and labels.\n");
     }
@@ -232,6 +252,31 @@ void train(neural_net *net, mnist_data *train_data, mnist_data *train_labels, in
         }
         printf("Epoch %d, Loss: %f\n", epoch + 1, total_loss / train_data->size);
     }
+}
+
+float evaluate(neural_net *net, mnist_data *test_data, mnist_data *test_labels) {
+    int correct_predictions = 0;
+
+    for (int i = 0; i < test_data->size; i++) {
+        float *output = (float *)malloc(net->output_nodes * sizeof(float));
+
+        forward_propagate_with_activation(net, test_data->images[i], output);
+
+        int predicted_label = 0;
+        for (int j = 1; j < net->output_nodes; j++) {
+            if (output[j] > output[predicted_label]) {
+                predicted_label = j;
+            }
+        }
+
+        if (predicted_label == test_data->labels[i]) {
+            correct_predictions++;
+        }
+
+        free(output);
+    }
+
+    return (float)correct_predictions / test_data->size;
 }
 
 void free_network(neural_net *net) {
