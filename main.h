@@ -43,11 +43,10 @@ float cross_entropy_loss(float *output, int *target, int size);
 
 // Action section.
 float evaluate(neural_net *net, mnist_data *test_data, mnist_data *test_labels);
-//TODO save wieghts? function
 
-// Matrix arithmetics section. Optional as separate functions.
-void matrix_multiply(float *A, float *B, float *C, int A_rows, int A_cols, int B_cols);
-void matrix_add(float *A, float *B, int size);
+// Save and load seaction.
+int save_network(neural_net *net, const char *filename);
+int load_network(neural_net *net, const char *filename);
 
-//Free functions
+//Free functions section,
 void free_network(neural_net *net);

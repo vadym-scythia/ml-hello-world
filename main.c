@@ -24,7 +24,20 @@ int main() {
 
         neural_net *net = initialize_network(784, 10);
 
-        train(net, train_images, train_labels, 30, 0.1); // For testing, use 1 epoch and a learning rate of 0.1
+        const char *network_filename = "network.dat";
+        if (load_network(net, network_filename) == 0) {
+            printf("Loaded existing network from %s.\n", network_filename);
+        } else {
+            printf("No existing network found. Starting from scratch.\n");
+        }
+
+        train(net, train_images, train_labels, 300, 0.1); // For testing, use 1 epoch and a learning rate of 0.1
+
+        if (save_network(net, network_filename) == 0) {
+            printf("Network saved to %s.\n", network_filename);
+        } else {
+            printf("Failed to save the network.\n");
+        }
 
         float accuracy = evaluate(net, test_images, test_labels);
         printf("Accuracy on test set: %.2f%%\n", accuracy * 100);
@@ -66,7 +79,7 @@ int reverse_int(int i) {
 
 mnist_data* load_mnist_images(const char* images_filename) {
     FILE *file = fopen(images_filename, "rb");
-    if (file == NULL) {
+    if (!file) {
         fprintf(stderr, "Error during file opening %s\n", images_filename);
         return NULL;
     }
@@ -108,7 +121,7 @@ mnist_data* load_mnist_images(const char* images_filename) {
 
 mnist_data* load_mnist_labels(const char* labels_filename) {
     FILE *file = fopen(labels_filename, "rb");
-    if (file == NULL) {
+    if (!file) {
         fprintf(stderr, "Cannot open file %s\n", labels_filename);
         return NULL;
     }
@@ -150,7 +163,7 @@ neural_net* initialize_network(int input_nodes, int output_nodes) {
     net->weights = (float *)malloc(input_nodes * output_nodes * sizeof(float));
     net->biases = (float *)malloc(output_nodes * sizeof(float));
     if (net->weights == NULL || net->biases == NULL) {
-        fprintf(stderr, "Memort allocation for weights and biases failed\n");
+        fprintf(stderr, "Memory allocation for weights and biases failed\n");
         free(net->weights);
         free(net->biases);
         free(net);
@@ -277,6 +290,42 @@ float evaluate(neural_net *net, mnist_data *test_data, mnist_data *test_labels) 
     }
 
     return (float)correct_predictions / test_data->size;
+}
+
+int save_network(neural_net *net, const char *filename) {
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        fprintf(stderr, "Error during file opening %s\n", filename);
+        return 1;
+    }
+
+    fwrite(&net->input_nodes, sizeof(int), 1, file);
+    fwrite(&net->output_nodes, sizeof(int), 1, file);
+    fwrite(net->weights, sizeof(float), net->input_nodes * net->output_nodes, file);
+    fwrite(net->biases, sizeof(float), net->output_nodes, file);
+
+    fclose(file);
+    return 0;
+}
+
+int load_network(neural_net *net, const char *filename) {
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        fprintf(stderr, "Error during file opening %s\n", filename);
+        return 1;
+    }
+
+    fread(&net->input_nodes, sizeof(int), 1, file);
+    fread(&net->output_nodes, sizeof(int), 1, file);
+
+    net->weights = (float *)malloc(net->input_nodes * net->output_nodes * sizeof(float));
+    net->biases = (float *)malloc(net->output_nodes * sizeof(float));
+
+    fread(net->weights, sizeof(float), net->input_nodes * net->output_nodes, file);
+    fread(net->biases, sizeof(float), net->output_nodes, file);
+
+    fclose(file);
+    return 0;
 }
 
 void free_network(neural_net *net) {
